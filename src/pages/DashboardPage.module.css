@@ -1,0 +1,281 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── TOP BAR ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  background: #fff;
+  border-bottom: 1px solid #f0e8e0;
+}
+
+.topBarLeft h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+
+.topBarLeft p {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #e07b30;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* ── BODY ── */
+.body {
+  flex: 1;
+  padding: 32px;
+}
+
+/* ── GREETING ── */
+.greeting {
+  margin-bottom: 28px;
+}
+
+.greetingTitle {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.greetingMeta {
+  font-size: 14px;
+  color: #888;
+}
+
+/* ── STAT CARDS ── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.statCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.statIcon {
+  font-size: 18px;
+  opacity: 0.75;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.1;
+}
+
+.statSub {
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* ── BOTTOM GRID ── */
+.bottomGrid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+/* ── RECENT ORDERS CARD ── */
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 26px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.viewAll {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e07b30;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.viewAll:hover {
+  text-decoration: underline;
+}
+
+/* ── ORDER ROW ── */
+.orderRow {
+  display: flex;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f5ede6;
+  gap: 16px;
+}
+
+.orderRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.orderLeft {
+  flex: 0 0 160px;
+}
+
+.orderId {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c8541a;
+  margin-bottom: 2px;
+}
+
+.orderCustomer {
+  font-size: 13px;
+  color: #666;
+}
+
+.orderMeal {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.orderAmount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  min-width: 60px;
+  text-align: right;
+}
+
+.badge {
+  min-width: 90px;
+  text-align: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.delivered {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.badge.ready {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge.preparing {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.pending {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+/* ── KITCHEN DETAILS ── */
+.kitchenDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailGroup {
+  margin-bottom: 18px;
+}
+
+.detailLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #bbb;
+  margin-bottom: 4px;
+}
+
+.detailValue {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.managePlansBtn {
+  margin-top: auto;
+  width: 100%;
+  height: 46px;
+  background-color: #e07b30;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.managePlansBtn:hover {
+  background-color: #c8541a;
+}

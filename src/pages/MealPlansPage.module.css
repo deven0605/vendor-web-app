@@ -1,0 +1,469 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── TOP BAR ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  background: #fff;
+  border-bottom: 1px solid #f0e8e0;
+}
+
+.topBarLeft h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+
+.topBarLeft p {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #e07b30;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* ── BODY ── */
+.body {
+  flex: 1;
+  padding: 32px;
+}
+
+/* ── PAGE HEADER ── */
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.pageTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.pageSubtitle {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.btnNewPlan {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 20px;
+  background-color: #c8541a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.btnNewPlan:hover {
+  background-color: #a84415;
+}
+
+/* ── MEAL TYPE CARDS ── */
+.mealTypesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mealTypeCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mealTypeHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mealTypeIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #f5e0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.mealTypeInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.mealTypeName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.mealTypePrice {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c8541a;
+}
+
+.mealTypeDesc {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.55;
+}
+
+/* ── PLANS SECTION ── */
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 14px;
+}
+
+.plansList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── PLAN CARD ── */
+.planCard {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 26px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.planCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.planCardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planNameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.planName {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.badgeActive {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background-color: #d1fae5;
+  color: #065f46;
+  text-transform: uppercase;
+}
+
+.badgeInactive {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background-color: #f0f0f0;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.planMeta {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.planActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btnDeactivate {
+  height: 36px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btnDeactivate:hover {
+  border-color: #aaa;
+  color: #333;
+}
+
+.btnActivate {
+  height: 36px;
+  padding: 0 16px;
+  background: #c8541a;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btnActivate:hover {
+  background: #a84415;
+}
+
+.btnManageDays {
+  height: 36px;
+  padding: 0 16px;
+  background: #c8541a;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.15s;
+}
+
+.btnManageDays:hover {
+  background: #a84415;
+}
+
+.btnDelete {
+  width: 36px;
+  height: 36px;
+  background: #fff0f0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #ef4444;
+  transition: background-color 0.15s;
+}
+
+.btnDelete:hover {
+  background: #fee2e2;
+}
+
+/* ── PROGRESS ── */
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressLabel {
+  font-size: 13px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.progressTrack {
+  height: 8px;
+  background-color: #f0e8e0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background-color: #4a7c59;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.progressDays {
+  font-size: 13px;
+  color: #555;
+  font-weight: 600;
+}
+
+/* ── EMPTY STATE ── */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #aaa;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  font-size: 15px;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.emptySubtext {
+  font-size: 13px;
+  color: #bbb;
+}
+
+/* ── MODAL OVERLAY ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.modalLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+.modalInput {
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: #fdf4ee;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modalInput:focus {
+  border-color: #c8541a;
+  box-shadow: 0 0 0 3px rgba(200, 84, 26, 0.1);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btnCancel {
+  height: 42px;
+  padding: 0 20px;
+  background: #f0e8e0;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnCancel:hover {
+  background: #e5d8cc;
+}
+
+.btnCreate {
+  height: 42px;
+  padding: 0 20px;
+  background: #c8541a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnCreate:hover {
+  background: #a84415;
+}
