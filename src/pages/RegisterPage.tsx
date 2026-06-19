@@ -8,6 +8,9 @@ import styles from './RegisterPage.module.css'
 interface BasicInfo {
   kitchenName: string
   ownerName: string
+  email: string
+  password: string
+  confirmPassword: string
   ownerMobile: string
   contactNumber: string
   sameAsOwner: boolean
@@ -101,6 +104,12 @@ function Step1BasicInfo({ data, onChange, onNext }: Step1Props) {
     const e: StepErrors = {}
     if (!data.kitchenName.trim()) e.kitchenName = 'Kitchen name is required'
     if (!data.ownerName.trim()) e.ownerName = 'Owner name is required'
+    if (!data.email.trim()) e.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) e.email = 'Enter a valid email address'
+    if (!data.password) e.password = 'Password is required'
+    else if (data.password.length < 8) e.password = 'Password must be at least 8 characters'
+    if (!data.confirmPassword) e.confirmPassword = 'Please confirm your password'
+    else if (data.password !== data.confirmPassword) e.confirmPassword = 'Passwords do not match'
     if (!data.ownerMobile.trim()) e.ownerMobile = 'Mobile number is required'
     else if (!/^\d{10}$/.test(data.ownerMobile)) e.ownerMobile = 'Enter a valid 10-digit number'
     if (!data.contactNumber.trim()) e.contactNumber = 'Contact number is required'
@@ -140,6 +149,47 @@ function Step1BasicInfo({ data, onChange, onNext }: Step1Props) {
             onChange={(e) => set('ownerName', e.target.value)}
           />
           {errors.ownerName && <span className={styles.errorMsg}>{errors.ownerName}</span>}
+        </div>
+      </div>
+
+      {/* Email */}
+      <div className={styles.col}>
+        <label className={styles.label}>
+          <span className={styles.labelIcon}>✉️</span> Email ID *
+        </label>
+        <input
+          className={styles.input}
+          type="email"
+          placeholder="e.g. owner@example.com"
+          value={data.email}
+          onChange={(e) => set('email', e.target.value)}
+        />
+        {errors.email && <span className={styles.errorMsg}>{errors.email}</span>}
+      </div>
+
+      {/* Password + Confirm Password */}
+      <div className={styles.row}>
+        <div className={styles.col} style={{ marginBottom: 0 }}>
+          <label className={styles.label}>🔒 Password *</label>
+          <input
+            className={styles.input}
+            type="password"
+            placeholder="Min. 8 characters"
+            value={data.password}
+            onChange={(e) => set('password', e.target.value)}
+          />
+          {errors.password && <span className={styles.errorMsg}>{errors.password}</span>}
+        </div>
+        <div className={styles.col} style={{ marginBottom: 0 }}>
+          <label className={styles.label}>🔒 Confirm Password *</label>
+          <input
+            className={styles.input}
+            type="password"
+            placeholder="Re-enter password"
+            value={data.confirmPassword}
+            onChange={(e) => set('confirmPassword', e.target.value)}
+          />
+          {errors.confirmPassword && <span className={styles.errorMsg}>{errors.confirmPassword}</span>}
         </div>
       </div>
 
@@ -467,6 +517,9 @@ export default function RegisterPage() {
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     kitchenName: '',
     ownerName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
     ownerMobile: '',
     contactNumber: '',
     sameAsOwner: false,
