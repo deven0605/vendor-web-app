@@ -48,11 +48,21 @@ export default function LoginPage() {
     if (!validate()) return
     setLoading(true)
     try {
-      // TODO: replace with your API call
-      // await authService.login(form)
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setErrors({ password: json.message ?? 'Invalid email or password' })
+        return
+      }
+      localStorage.setItem('accessToken', json.data.accessToken)
+      localStorage.setItem('refreshToken', json.data.refreshToken)
       navigate('/dashboard')
     } catch {
-      setErrors({ password: 'Invalid email or password' })
+      setErrors({ password: 'Unable to connect to server. Please try again.' })
     } finally {
       setLoading(false)
     }

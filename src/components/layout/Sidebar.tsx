@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { logoutApi } from '@/utils/authFetch'
 import styles from './Sidebar.module.css'
 
 const NAV_ITEMS = [
@@ -10,8 +11,8 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const navigate = useNavigate()
 
-  const handleSignOut = () => {
-    localStorage.removeItem('access_token')
+  const handleSignOut = async () => {
+    await logoutApi()
     navigate('/login')
   }
 

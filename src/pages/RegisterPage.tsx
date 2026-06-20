@@ -513,6 +513,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   const [basicInfo, setBasicInfo] = useState<BasicInfo>({
     kitchenName: '',
@@ -542,12 +543,39 @@ export default function RegisterPage() {
 
   const handleSubmit = async () => {
     setLoading(true)
+    setApiError(null)
     try {
-      // TODO: replace with your API call
-      // await vendorService.register({ basicInfo, locationInfo, hoursInfo })
+      const payload = {
+        kitchenName: basicInfo.kitchenName,
+        ownerName: basicInfo.ownerName,
+        email: basicInfo.email,
+        password: basicInfo.password,
+        ownerMobile: basicInfo.ownerMobile,
+        contactNumber: basicInfo.contactNumber,
+        streetAddress: locationInfo.streetAddress,
+        city: locationInfo.city,
+        state: locationInfo.state,
+        pincode: locationInfo.pincode,
+        latitude: locationInfo.latitude,
+        longitude: locationInfo.longitude,
+        opensAt: hoursInfo.opensAt,
+        closesAt: hoursInfo.closesAt,
+      }
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setApiError(json.message ?? 'Registration failed. Please try again.')
+        return
+      }
+      localStorage.setItem('accessToken', json.data.accessToken)
+      localStorage.setItem('refreshToken', json.data.refreshToken)
       navigate('/dashboard')
     } catch {
-      // handle error
+      setApiError('Unable to connect to server. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -563,6 +591,12 @@ export default function RegisterPage() {
       </div>
 
       <Stepper current={step} />
+
+      {apiError && (
+        <div style={{ color: '#c0392b', background: '#fdecea', border: '1px solid #f5c6cb', borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 14 }}>
+          {apiError}
+        </div>
+      )}
 
       <div className={styles.card}>
         {step === 1 && (
