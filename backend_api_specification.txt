@@ -1,0 +1,893 @@
+================================================================================
+BACKEND API SPECIFICATION — DASHBOARD & LINKED PAGES
+ThaliCloud Vendor Portal
+Generated: 2026-06-20
+================================================================================
+
+--------------------------------------------------------------------------------
+SCOPE
+--------------------------------------------------------------------------------
+
+Pages analyzed:
+
+  Page                Route                          Entry Point
+  ─────────────────── ────────────────────────────── ────────────────────────────
+  Dashboard           /dashboard                     Primary page
+  Today's Orders      /orders                        Sidebar + Dashboard "View all"
+  Meal Plans          /meal-plans                    Sidebar + Dashboard "Manage Meal Plans"
+  Create Meal Plan    /meal-plans/create             Meal Plans "+ New Plan" button
+  Manage Days         /meal-plans/:planId/manage     Meal Plans plan card "Manage Days"
+
+NOTE: /orders has no page component yet but is linked from the Sidebar ("Today's
+Orders") and from the Dashboard Recent Orders card ("View all →"). APIs for it
+are derived from the order data already displayed in the Dashboard widget.
+
+--------------------------------------------------------------------------------
+GLOBAL CONVENTIONS
+--------------------------------------------------------------------------------
+
+  Base URL      : All paths are relative. Vite dev server proxies /api/* to
+                  http://localhost:8081.
+
+  Authentication: All endpoints require:
+                    Authorization: Bearer <accessToken>
+                  On 401, the client retries once via /api/auth/refresh.
+                  All data is scoped to the authenticated vendor — vendor ID is
+                  always derived from the JWT, never passed as a request param.
+
+  Vendor Scope  : Every endpoint implicitly filters to the authenticated vendor's
+                  data.
+
+  Error Envelope:
+                  { "error": { "code": "PLAN_NOT_FOUND", "message": "..." } }
+
+  Success Envelope:
+                  { "data": { ... } }
+
+  Dates         : ISO 8601
+                  - Date only  : YYYY-MM-DD
+                  - Timestamp  : YYYY-MM-DDTHH:mm:ssZ
+
+  Currency      : Monetary values in paise (integer) unless stated otherwise.
+
+================================================================================
+MODULE 1 — VENDOR PROFILE
+================================================================================
+
+--------------------------------------------------------------------------------
+API 1.1 — Get Current Vendor Profile
+--------------------------------------------------------------------------------
+
+  Module      : Vendor
+  Feature     : Profile
+  Purpose     : Provides the authenticated vendor's name, email, and avatar
+                initial displayed in the Sidebar user section and in all page
+                top-bar labels ("Neelam", "N" avatar).
+  Method      : GET
+  Endpoint    : /api/vendor/me
+  Auth        : Required — vendor-scoped
+
+  Request Parameters : None
+  Request Body       : None
+
+  Response:
+    {
+      "data": {
+        "vendorId": "vendor-123",
+        "name": "Neelam",
+        "email": "vendor@example.com",
+        "avatarInitial": "N"
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+--------------------------------------------------------------------------------
+API 1.2 — Get Kitchen Details
+--------------------------------------------------------------------------------
+
+  Module      : Vendor
+  Feature     : Kitchen Profile
+  Purpose     : Powers the "Kitchen Details" card on the Dashboard (kitchen
+                name, owner, phone, address, hours) and the kitchen name and
+                hours in the Sidebar kitchen card.
+  Method      : GET
+  Endpoint    : /api/vendor/kitchen
+  Auth        : Required — vendor-scoped
+
+  Request Parameters : None
+  Request Body       : None
+
+  Response:
+    {
+      "data": {
+        "kitchenName": "Amma's Kitchen",
+        "ownerName": "Neelam",
+        "phone": "8362382393",
+        "address": "Gaikwad Nagar, Pune",
+        "city": "Pune",
+        "operatingHours": {
+          "open": "09:00",
+          "close": "21:00"
+        }
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 2 — DASHBOARD
+================================================================================
+
+--------------------------------------------------------------------------------
+API 2.1 — Get Dashboard Summary Stats
+--------------------------------------------------------------------------------
+
+  Module      : Dashboard
+  Feature     : Summary Statistics
+  Purpose     : Powers the four stat cards on the Dashboard:
+                  - Orders Today (count + delta from yesterday)
+                  - Revenue Today (total amount + order count)
+                  - Active Meal Plan (name + days remaining)
+                  - Avg. Rating (value + review count)
+  Method      : GET
+  Endpoint    : /api/dashboard/summary
+  Auth        : Required — vendor-scoped
+
+  Request Parameters : None
+  Request Body       : None
+
+  Response:
+    {
+      "data": {
+        "ordersToday": {
+          "count": 28,
+          "deltaFromYesterday": 4
+        },
+        "revenueToday": {
+          "amountInPaise": 384000,
+          "orderCount": 28
+        },
+        "activeMealPlan": {
+          "planId": "plan-1",
+          "name": "June Plan",
+          "daysRemaining": 21
+        },
+        "avgRating": {
+          "value": 4.7,
+          "reviewCount": 124
+        }
+      }
+    }
+
+  Notes:
+    - activeMealPlan is null if no plan is currently active.
+    - "Today" is evaluated server-side using the vendor's registered timezone.
+    - deltaFromYesterday is positive when today's count exceeds yesterday's.
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 3 — ORDERS
+================================================================================
+
+--------------------------------------------------------------------------------
+API 3.1 — Get Recent Orders (Dashboard Widget)
+--------------------------------------------------------------------------------
+
+  Module      : Orders
+  Feature     : Recent Orders Widget
+  Purpose     : Populates the "Recent Orders" card on the Dashboard.
+                Columns shown: Order ID, Customer, Meal Type, Amount, Status.
+                Fixed to the most recent N orders.
+  Method      : GET
+  Endpoint    : /api/orders/recent
+  Auth        : Required — vendor-scoped
+
+  Request Query Parameters:
+    Parameter   Type      Default   Description
+    ─────────── ───────── ───────── ────────────────────────────────────────────
+    limit       integer   5         Number of orders to return. Max 10.
+
+  Request Body : None
+
+  Response:
+    {
+      "data": [
+        {
+          "orderId": "ORD-008",
+          "customerName": "Priya Desai",
+          "mealType": "Standard Veg",
+          "amountInPaise": 29000,
+          "status": "Delivered",
+          "createdAt": "2026-06-20T08:30:00Z"
+        },
+        {
+          "orderId": "ORD-007",
+          "customerName": "Amit Kulkarni",
+          "mealType": "Mini Veg",
+          "amountInPaise": 13000,
+          "status": "Ready",
+          "createdAt": "2026-06-20T08:15:00Z"
+        }
+      ]
+    }
+
+  Status Enum : Pending | Preparing | Ready | Delivered
+
+  Pagination  : No (fixed limit, not paginated)
+  Sorting     : Fixed — descending by createdAt
+  Filtering   : None
+  Search      : None
+
+--------------------------------------------------------------------------------
+API 3.2 — List Orders (Today's Orders Page)
+--------------------------------------------------------------------------------
+
+  Module      : Orders
+  Feature     : Today's Orders Full List
+  Purpose     : Powers the /orders page (linked from Sidebar "Today's Orders"
+                and Dashboard "View all →"). Displays the complete paginated
+                orders list for a given date with status filtering and search.
+  Method      : GET
+  Endpoint    : /api/orders
+  Auth        : Required — vendor-scoped
+
+  Request Query Parameters:
+    Parameter   Type              Default     Description
+    ─────────── ───────────────── ─────────── ──────────────────────────────────
+    date        string YYYY-MM-DD today       Filter by delivery/order date
+    status      string (enum)     all         Filter by order status
+    search      string            —           Search on customer name or order ID
+    page        integer           1           Page number (1-based)
+    pageSize    integer           20          Items per page. Max 100.
+    sortBy      string            createdAt   createdAt | amount | status |
+                                              customerName
+    sortOrder   string            desc        asc | desc
+
+  Request Body : None
+
+  Response:
+    {
+      "data": {
+        "orders": [
+          {
+            "orderId": "ORD-008",
+            "customerName": "Priya Desai",
+            "mealType": "Standard Veg",
+            "amountInPaise": 29000,
+            "status": "Delivered",
+            "createdAt": "2026-06-20T08:30:00Z"
+          }
+        ],
+        "pagination": {
+          "page": 1,
+          "pageSize": 20,
+          "totalCount": 28,
+          "totalPages": 2
+        }
+      }
+    }
+
+  Status Enum : Pending | Preparing | Ready | Delivered
+
+  Pagination  : Required — page + pageSize
+  Sorting     : Required — sortBy + sortOrder
+  Filtering   : By date, by status
+  Search      : By customer name or order ID (search param)
+
+--------------------------------------------------------------------------------
+API 3.3 — Update Order Status
+--------------------------------------------------------------------------------
+
+  Module      : Orders
+  Feature     : Order Status Update
+  Purpose     : Allows the vendor to advance an order through its lifecycle
+                (Pending → Preparing → Ready → Delivered) from the Orders page.
+                The status badge on each order row implies this action.
+  Method      : PATCH
+  Endpoint    : /api/orders/:orderId/status
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type     Description
+    ─────────── ──────── ──────────────────────────────────────────────────────
+    orderId     string   The unique order identifier
+
+  Request Body:
+    {
+      "status": "Ready"
+    }
+
+  Response:
+    {
+      "data": {
+        "orderId": "ORD-008",
+        "status": "Ready",
+        "updatedAt": "2026-06-20T09:00:00Z"
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 4 — MEAL PLANS
+================================================================================
+
+--------------------------------------------------------------------------------
+API 4.1 — List Meal Plans
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plans
+  Feature     : Plan List
+  Purpose     : Populates the plan list on MealPlansPage. Each plan card shows:
+                name, Active/Inactive badge, date range, total days, days
+                completed, progress bar.
+  Method      : GET
+  Endpoint    : /api/meal-plans
+  Auth        : Required — vendor-scoped
+
+  Request Query Parameters:
+    Parameter   Type      Default   Description
+    ─────────── ───────── ───────── ────────────────────────────────────────────
+    isActive    boolean   all       Filter to only active or only inactive plans
+
+  Request Body : None
+
+  Response:
+    {
+      "data": [
+        {
+          "planId": "plan-1",
+          "name": "June Monthly Plan",
+          "startDate": "2026-06-01",
+          "endDate": "2026-06-30",
+          "totalDays": 30,
+          "daysCompleted": 8,
+          "isActive": true,
+          "mealTypeIds": ["standard", "mini"]
+        }
+      ]
+    }
+
+  Pagination  : No (vendors expected to have a small number of plans)
+  Sorting     : Fixed — descending by startDate
+  Filtering   : Optional isActive boolean filter
+  Search      : No
+
+--------------------------------------------------------------------------------
+API 4.2 — Create Meal Plan
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plans
+  Feature     : Plan Creation
+  Purpose     : Called on form submit in CreateMealPlanPage. Creates a new meal
+                plan with a name, date range, and the selected meal types that
+                will be enabled for each day.
+  Method      : POST
+  Endpoint    : /api/meal-plans
+  Auth        : Required — vendor-scoped
+
+  Request Body:
+    {
+      "name": "July Monthly Plan",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-31",
+      "mealTypeIds": ["standard", "mini"]
+    }
+
+  Validation Rules:
+    - name        : required, non-empty string, max 100 characters
+    - startDate   : required, ISO 8601 date, must not be in the past
+    - endDate     : required, ISO 8601 date, must be strictly after startDate
+    - mealTypeIds : required array, minimum 1 item, all values must be valid
+                    meal type IDs
+
+  Response (201 Created):
+    {
+      "data": {
+        "planId": "plan-2",
+        "name": "July Monthly Plan",
+        "startDate": "2026-07-01",
+        "endDate": "2026-07-31",
+        "totalDays": 31,
+        "daysCompleted": 0,
+        "isActive": false,
+        "mealTypeIds": ["standard", "mini"]
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+--------------------------------------------------------------------------------
+API 4.3 — Get Meal Plan Detail
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plans
+  Feature     : Plan Detail
+  Purpose     : Loads a single plan's metadata in ManageDaysPage. Required to
+                display the plan title and date range, and to generate the day
+                accordion list client-side from startDate/endDate.
+  Method      : GET
+  Endpoint    : /api/meal-plans/:planId
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type     Description
+    ─────────── ──────── ──────────────────────────────────────────────────────
+    planId      string   The plan identifier
+
+  Request Body : None
+
+  Response:
+    {
+      "data": {
+        "planId": "plan-1",
+        "name": "June Monthly Plan",
+        "startDate": "2026-06-01",
+        "endDate": "2026-06-30",
+        "totalDays": 30,
+        "daysCompleted": 8,
+        "isActive": true,
+        "mealTypeIds": ["standard", "mini"]
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+--------------------------------------------------------------------------------
+API 4.4 — Toggle Meal Plan Active Status
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plans
+  Feature     : Activate / Deactivate Plan
+  Purpose     : Called when the vendor clicks "Activate" or "Deactivate" on a
+                plan card in MealPlansPage. Controls which plan is visible to
+                customers.
+  Method      : PATCH
+  Endpoint    : /api/meal-plans/:planId/status
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type     Description
+    ─────────── ──────── ──────────────────────────────────────────────────────
+    planId      string   The plan identifier
+
+  Request Body:
+    {
+      "isActive": true
+    }
+
+  Response:
+    {
+      "data": {
+        "planId": "plan-1",
+        "isActive": true,
+        "updatedAt": "2026-06-20T10:00:00Z"
+      }
+    }
+
+  Business Rule: The backend must enforce a single-active-plan constraint.
+  When activating a plan, any currently active plan for the same vendor must
+  be automatically deactivated.
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+--------------------------------------------------------------------------------
+API 4.5 — Delete Meal Plan
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plans
+  Feature     : Plan Deletion
+  Purpose     : Called when the vendor clicks the delete button on a plan card
+                in MealPlansPage.
+  Method      : DELETE
+  Endpoint    : /api/meal-plans/:planId
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type     Description
+    ─────────── ──────── ──────────────────────────────────────────────────────
+    planId      string   The plan identifier
+
+  Request Body : None
+  Response     : 204 No Content
+
+  Business Rule: Active plans should either be blocked from deletion or
+  auto-deactivated before removal — backend must enforce this.
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 5 — MEAL PLAN DAY MENUS
+================================================================================
+
+--------------------------------------------------------------------------------
+API 5.1 — Get Day Menus for a Plan
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plan Day Menus
+  Feature     : Day Menu List
+  Purpose     : Loads all saved lunch and dinner menus for every day in a plan
+                on ManageDaysPage. The client uses this to pre-populate the slot
+                forms with the vendor's previously saved menu instead of
+                default values.
+  Method      : GET
+  Endpoint    : /api/meal-plans/:planId/days
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type     Description
+    ─────────── ──────── ──────────────────────────────────────────────────────
+    planId      string   The plan identifier
+
+  Request Body : None
+
+  Response:
+    {
+      "data": [
+        {
+          "date": "2026-06-01",
+          "lunch": {
+            "vegetables": ["Paneer Butter Masala", "Aloo Gobi"],
+            "chapatiCount": 4,
+            "riceType": "Onion Rice",
+            "riceCount": 1,
+            "dal": "Dal Tadka"
+          },
+          "dinner": {
+            "vegetables": ["Bhindi Masala", "Matar Paneer"],
+            "chapatiCount": 3,
+            "riceType": "Jeera Rice",
+            "riceCount": 1,
+            "dal": "Dal Makhani"
+          }
+        }
+      ]
+    }
+
+  Notes:
+    - Days that have never been explicitly saved should return the system
+      default menu values so the client has a consistent starting state.
+    - Response contains one entry per calendar day in the plan's
+      startDate–endDate range.
+
+  Pagination  : No (all days returned together; maximum ~365 entries)
+  Sorting     : Fixed — ascending by date
+  Filtering   : No
+  Search      : No
+
+--------------------------------------------------------------------------------
+API 5.2 — Save Day Slot Menu
+--------------------------------------------------------------------------------
+
+  Module      : Meal Plan Day Menus
+  Feature     : Save Slot Menu
+  Purpose     : Called when the vendor clicks "Save Menu" for a specific day's
+                Lunch or Dinner slot in ManageDaysPage. Persists the menu for
+                that day and slot combination.
+  Method      : PUT
+  Endpoint    : /api/meal-plans/:planId/days/:date/slots/:slot
+  Auth        : Required — vendor-scoped
+
+  Path Parameters:
+    Parameter   Type              Description
+    ─────────── ───────────────── ────────────────────────────────────────────
+    planId      string            The plan identifier
+    date        string YYYY-MM-DD The specific day to save
+    slot        string (enum)     lunch | dinner
+
+  Request Body:
+    {
+      "vegetables": ["Paneer Butter Masala", "Aloo Gobi"],
+      "chapatiCount": 4,
+      "riceType": "Onion Rice",
+      "riceCount": 1,
+      "dal": "Dal Tadka"
+    }
+
+  Validation Rules:
+    - vegetables  : array, 1–5 items, each value must exist in the configured
+                    vegetable options list
+    - chapatiCount: integer, min 1, max 8
+    - riceType    : string, must be a valid rice type option
+    - riceCount   : integer, min 0, max 4
+    - dal         : string, must be a valid dal option
+    - date        : must fall within the plan's startDate–endDate range
+
+  Response (200 OK):
+    {
+      "data": {
+        "planId": "plan-1",
+        "date": "2026-06-01",
+        "slot": "lunch",
+        "menu": {
+          "vegetables": ["Paneer Butter Masala", "Aloo Gobi"],
+          "chapatiCount": 4,
+          "riceType": "Onion Rice",
+          "riceCount": 1,
+          "dal": "Dal Tadka"
+        },
+        "savedAt": "2026-06-20T11:00:00Z"
+      }
+    }
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 6 — MEAL TYPES (CATALOG)
+================================================================================
+
+--------------------------------------------------------------------------------
+API 6.1 — List Meal Types
+--------------------------------------------------------------------------------
+
+  Module      : Meal Types
+  Feature     : Meal Type Catalog
+  Purpose     : Provides the available meal type catalog used in two places:
+                  1. The informational type cards on MealPlansPage (name, price,
+                     description, icon).
+                  2. The checkbox list on CreateMealPlanPage for selecting which
+                     meal types are enabled per plan.
+  Method      : GET
+  Endpoint    : /api/meal-types
+  Auth        : Required
+
+  Request Parameters : None
+  Request Body       : None
+
+  Response:
+    {
+      "data": [
+        {
+          "id": "standard",
+          "name": "Standard Veg Thali",
+          "price": 160,
+          "description": "3–4 chapatis, dry sabji, gravy sabji, dal, rice, papad, salad, sweet.",
+          "icon": "🍱"
+        },
+        {
+          "id": "mini",
+          "name": "Mini Veg Thali",
+          "price": 100,
+          "description": "2 chapatis, 1 sabji, dal, rice, sweet.",
+          "icon": "🥘"
+        }
+      ]
+    }
+
+  Notes: This is a global catalog, not vendor-specific. Safe to cache on client.
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+MODULE 7 — MENU CONFIGURATION / LOOKUPS
+================================================================================
+
+--------------------------------------------------------------------------------
+API 7.1 — Get Menu Configuration Options
+--------------------------------------------------------------------------------
+
+  Module      : Menu Configuration
+  Feature     : Slot Form Dropdown Options
+  Purpose     : Returns all dropdown option lists and numeric constraints used
+                in the ManageDaysPage day slot forms:
+                  - Vegetable options (multi-select tags)
+                  - Dal type options (dropdown)
+                  - Rice type options (dropdown)
+                  - Quantity constraints (chapati min/max, rice min/max,
+                    max vegetables)
+                Currently hardcoded on the frontend — serving from backend
+                allows admin-driven updates without frontend deploys.
+  Method      : GET
+  Endpoint    : /api/menu-options
+  Auth        : Required
+
+  Request Parameters : None
+  Request Body       : None
+
+  Response:
+    {
+      "data": {
+        "vegetables": [
+          "Paneer Butter Masala",
+          "Aloo Gobi",
+          "Palak Paneer",
+          "Bhindi Masala",
+          "Chana Masala",
+          "Mixed Veg",
+          "Matar Paneer",
+          "Baingan Bharta",
+          "Jeera Aloo",
+          "Rajma",
+          "Kadai Paneer",
+          "Mushroom Masala"
+        ],
+        "dalOptions": [
+          "Dal Tadka",
+          "Dal Makhani",
+          "Dal Fry",
+          "Chana Dal",
+          "Moong Dal"
+        ],
+        "riceOptions": [
+          "Onion Rice",
+          "Jeera Rice",
+          "Plain Rice",
+          "Veg Pulao"
+        ],
+        "constraints": {
+          "maxVegetables": 5,
+          "chapatiMin": 1,
+          "chapatiMax": 8,
+          "riceMin": 0,
+          "riceMax": 4
+        }
+      }
+    }
+
+  Notes: This is configuration data that rarely changes. The client may cache
+  this response aggressively (e.g., 1 hour or until session end).
+
+  Pagination : No
+  Sorting    : No
+  Filtering  : No
+  Search     : No
+
+================================================================================
+DASHBOARD WIDGETS — DATA SOURCE MAP
+================================================================================
+
+  Widget / Element                    Source API
+  ─────────────────────────────────── ─────────────────────────────────────────
+  Top-bar vendor name + avatar        GET /api/vendor/me
+  Sidebar kitchen name + hours        GET /api/vendor/kitchen
+  Sidebar user name + email           GET /api/vendor/me
+  Stat card — Orders Today            GET /api/dashboard/summary → ordersToday
+  Stat card — Revenue Today           GET /api/dashboard/summary → revenueToday
+  Stat card — Active Meal Plan        GET /api/dashboard/summary → activeMealPlan
+  Stat card — Avg. Rating             GET /api/dashboard/summary → avgRating
+  Recent Orders card (table)          GET /api/orders/recent?limit=5
+  Kitchen Details card                GET /api/vendor/kitchen
+
+================================================================================
+STATUS ENUMS
+================================================================================
+
+  Order Status:
+    Pending    — Order received, not yet started
+    Preparing  — Kitchen is preparing the order
+    Ready      — Order is ready for pickup/delivery
+    Delivered  — Order has been delivered
+
+  Meal Plan Status:
+    isActive: true   — Plan is live and visible to customers
+    isActive: false  — Plan is inactive / draft
+
+  Meal Slot:
+    lunch   — Daytime meal slot
+    dinner  — Evening meal slot
+
+================================================================================
+RELATIONSHIPS BETWEEN PAGES
+================================================================================
+
+  DashboardPage (/dashboard)
+    |
+    |-- stat cards              <-- GET /api/dashboard/summary
+    |-- recent orders table     <-- GET /api/orders/recent
+    |-- kitchen details card    <-- GET /api/vendor/kitchen
+    |
+    |-- "View all →"            --> /orders
+    |     |
+    |     └-- orders list       <-- GET /api/orders
+    |           |-- filter by date, status, search
+    |           └-- update status --> PATCH /api/orders/:orderId/status
+    |
+    └-- "Manage Meal Plans →"   --> /meal-plans
+          |
+          └-- MealPlansPage
+                |
+                |-- meal type cards    <-- GET /api/meal-types
+                |-- plans list         <-- GET /api/meal-plans
+                |-- activate plan          PATCH /api/meal-plans/:id/status
+                |-- deactivate plan        PATCH /api/meal-plans/:id/status
+                |-- delete plan            DELETE /api/meal-plans/:id
+                |
+                |-- "+ New Plan"       --> /meal-plans/create
+                |     |
+                |     └-- form submit      POST /api/meal-plans
+                |
+                └-- "Manage Days"     --> /meal-plans/:planId/manage
+                      |
+                      └-- ManageDaysPage
+                            |
+                            |-- plan header      <-- GET /api/meal-plans/:planId
+                            |-- day menus        <-- GET /api/meal-plans/:planId/days
+                            |-- slot dropdowns   <-- GET /api/menu-options
+                            └-- save slot menu       PUT /api/meal-plans/:planId/
+                                                         days/:date/slots/:slot
+
+================================================================================
+REUSABLE APIs
+================================================================================
+
+  API                        Reused By
+  ─────────────────────────── ──────────────────────────────────────────────────
+  GET /api/vendor/me          Dashboard top bar, all page top bars,
+                              Sidebar user section
+  GET /api/vendor/kitchen     Dashboard "Kitchen Details" card,
+                              Sidebar kitchen card
+  GET /api/meal-types         MealPlansPage (display cards),
+                              CreateMealPlanPage (checkboxes)
+  GET /api/menu-options       ManageDaysPage all slot forms (vegetables, dal,
+                              rice dropdowns + constraints)
+  GET /api/dashboard/summary  Stat cards; activeMealPlan field also useful
+    → activeMealPlan          for Sidebar if it ever shows active plan name
+
+================================================================================
+COMPLETE API INDEX
+================================================================================
+
+  #    Method   Endpoint                                          Module
+  ──── ──────── ─────────────────────────────────────────────── ──────────────────────────────
+  1.1  GET      /api/vendor/me                                   Vendor — Current vendor profile
+  1.2  GET      /api/vendor/kitchen                              Vendor — Kitchen details
+  2.1  GET      /api/dashboard/summary                           Dashboard — Summary stat cards
+  3.1  GET      /api/orders/recent                               Orders — Recent orders widget
+  3.2  GET      /api/orders                                      Orders — Today's orders full list
+  3.3  PATCH    /api/orders/:orderId/status                      Orders — Update order status
+  4.1  GET      /api/meal-plans                                  Meal Plans — List plans
+  4.2  POST     /api/meal-plans                                  Meal Plans — Create plan
+  4.3  GET      /api/meal-plans/:planId                          Meal Plans — Get plan detail
+  4.4  PATCH    /api/meal-plans/:planId/status                   Meal Plans — Toggle active status
+  4.5  DELETE   /api/meal-plans/:planId                          Meal Plans — Delete plan
+  5.1  GET      /api/meal-plans/:planId/days                     Day Menus — Get all day menus
+  5.2  PUT      /api/meal-plans/:planId/days/:date/slots/:slot   Day Menus — Save slot menu
+  6.1  GET      /api/meal-types                                  Meal Types — Meal type catalog
+  7.1  GET      /api/menu-options                                Menu Config — Slot form options
+
+================================================================================
+TOTAL: 15 endpoints across 7 modules
+================================================================================
+
+IMPORTANT:
+  - No implementation has been done.
+  - This document only describes what the backend must provide.
+  - No controllers, services, entities, repositories, or database schema have
+    been generated or modified.
+  - Wait for further instructions before implementing anything.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

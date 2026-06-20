@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { fetchVendorMe, fetchKitchenDetails } from '@/api/vendorApi'
+import type { VendorMe, KitchenDetails } from '@/api/vendorApi'
 import styles from './DashboardPage.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -13,7 +16,7 @@ interface Order {
   status: OrderStatus
 }
 
-// ─── Mock Data (replace with API calls) ──────────────────────────────────────
+// ─── Mock data — replace with API calls (Module 3: Orders) ───────────────────
 
 const RECENT_ORDERS: Order[] = [
   { id: 'ORD-008', customer: 'Priya Desai',   meal: 'Standard Veg', amount: 290, status: 'Delivered' },
@@ -22,31 +25,13 @@ const RECENT_ORDERS: Order[] = [
   { id: 'ORD-005', customer: 'Rajesh Patil',  meal: 'Standard Veg', amount: 435, status: 'Pending'   },
 ]
 
+// ─── Mock stats — replace with GET /api/dashboard/summary (Module 2) ─────────
+
 const STATS = [
-  {
-    label: 'Orders Today',
-    value: '28',
-    sub: '+4 from yesterday',
-    icon: '🗓️',
-  },
-  {
-    label: 'Revenue Today',
-    value: '₹3,840',
-    sub: 'Across 28 orders',
-    icon: '📈',
-  },
-  {
-    label: 'Active Meal Plan',
-    value: 'June Plan',
-    sub: '21 days remaining',
-    icon: '📅',
-  },
-  {
-    label: 'Avg. Rating',
-    value: '4.7',
-    sub: 'Based on 124 reviews',
-    icon: '⭐',
-  },
+  { label: 'Orders Today',    value: '28',       sub: '+4 from yesterday',     icon: '🗓️' },
+  { label: 'Revenue Today',   value: '₹3,840',   sub: 'Across 28 orders',      icon: '📈' },
+  { label: 'Active Meal Plan',value: 'June Plan', sub: '21 days remaining',    icon: '📅' },
+  { label: 'Avg. Rating',     value: '4.7',       sub: 'Based on 124 reviews', icon: '⭐' },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -76,9 +61,27 @@ function statusClass(status: OrderStatus): string {
   return map[status]
 }
 
+function formatHours(hours: KitchenDetails['operatingHours'] | undefined): string {
+  if (!hours?.open || !hours?.close) return '—'
+  return `${hours.open} – ${hours.close}`
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const [vendor, setVendor]   = useState<VendorMe | null>(null)
+  const [kitchen, setKitchen] = useState<KitchenDetails | null>(null)
+
+  useEffect(() => {
+    fetchVendorMe().then(setVendor).catch(console.error)
+    fetchKitchenDetails().then(setKitchen).catch(console.error)
+  }, [])
+
+  const displayName    = vendor?.name          ?? '…'
+  const avatarInitial  = vendor?.avatarInitial ?? '…'
+  const kitchenName    = kitchen?.kitchenName  ?? '…'
+  const kitchenCity    = kitchen?.city         ?? '…'
+
   return (
     <div className={styles.page}>
       {/* Top Bar */}
@@ -88,8 +91,8 @@ export default function DashboardPage() {
           <p>{getTodayLabel()}</p>
         </div>
         <div className={styles.topBarRight}>
-          <div className={styles.avatar}>N</div>
-          <span className={styles.avatarName}>Neelam</span>
+          <div className={styles.avatar}>{avatarInitial}</div>
+          <span className={styles.avatarName}>{displayName}</span>
         </div>
       </div>
 
@@ -98,9 +101,9 @@ export default function DashboardPage() {
         {/* Greeting */}
         <div className={styles.greeting}>
           <h1 className={styles.greetingTitle}>
-            {getGreeting()}, Neelam 👋
+            {getGreeting()}, {displayName} 👋
           </h1>
-          <p className={styles.greetingMeta}>Amma's Kitchen · Pune</p>
+          <p className={styles.greetingMeta}>{kitchenName} · {kitchenCity}</p>
         </div>
 
         {/* Stat Cards */}
@@ -150,23 +153,23 @@ export default function DashboardPage() {
             <div className={styles.kitchenDetails}>
               <div className={styles.detailGroup}>
                 <p className={styles.detailLabel}>Kitchen</p>
-                <p className={styles.detailValue}>Amma's Kitchen</p>
+                <p className={styles.detailValue}>{kitchen?.kitchenName ?? '…'}</p>
               </div>
               <div className={styles.detailGroup}>
                 <p className={styles.detailLabel}>Owner</p>
-                <p className={styles.detailValue}>Neelam</p>
+                <p className={styles.detailValue}>{kitchen?.ownerName ?? '…'}</p>
               </div>
               <div className={styles.detailGroup}>
                 <p className={styles.detailLabel}>Phone</p>
-                <p className={styles.detailValue}>8362382393</p>
+                <p className={styles.detailValue}>{kitchen?.phone ?? '…'}</p>
               </div>
               <div className={styles.detailGroup}>
                 <p className={styles.detailLabel}>Address</p>
-                <p className={styles.detailValue}>Gaikwad Nagar, Pune</p>
+                <p className={styles.detailValue}>{kitchen?.address ?? '…'}</p>
               </div>
               <div className={styles.detailGroup}>
                 <p className={styles.detailLabel}>Hours</p>
-                <p className={styles.detailValue}>09:00 – 21:00</p>
+                <p className={styles.detailValue}>{formatHours(kitchen?.operatingHours)}</p>
               </div>
 
               <Link to="/meal-plans">
