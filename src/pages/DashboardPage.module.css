@@ -279,3 +279,11 @@
 .managePlansBtn:hover {
   background-color: #c8541a;
 }
+
+/* ── PLACEHOLDER ── */
+.placeholder {
+  color: #aaa;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+}

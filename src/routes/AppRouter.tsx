@@ -6,6 +6,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import MealPlansPage from '@/pages/MealPlansPage'
 import CreateMealPlanPage from '@/pages/CreateMealPlanPage'
 import ManageDaysPage from '@/pages/ManageDaysPage'
+import OrdersPage from '@/pages/OrdersPage'
 
 export default function AppRouter() {
   return (
@@ -17,9 +18,10 @@ export default function AppRouter() {
 
         {/* Protected — sidebar layout */}
         <Route element={<AppLayout />}>
-          <Route path="/dashboard"  element={<DashboardPage />} />
-          <Route path="/meal-plans"        element={<MealPlansPage />} />
-          <Route path="/meal-plans/create"          element={<CreateMealPlanPage />} />
+          <Route path="/dashboard"                 element={<DashboardPage />} />
+          <Route path="/orders"                    element={<OrdersPage />} />
+          <Route path="/meal-plans"                element={<MealPlansPage />} />
+          <Route path="/meal-plans/create"         element={<CreateMealPlanPage />} />
           <Route path="/meal-plans/:planId/manage" element={<ManageDaysPage />} />
         </Route>
 

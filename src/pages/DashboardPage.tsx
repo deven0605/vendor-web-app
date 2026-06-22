@@ -2,37 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchVendorMe, fetchKitchenDetails } from '@/api/vendorApi'
 import type { VendorMe, KitchenDetails } from '@/api/vendorApi'
+import { fetchDashboardSummary } from '@/api/dashboardApi'
+import type { DashboardSummary } from '@/api/dashboardApi'
+import { fetchRecentOrders, rupeesFromPaise } from '@/api/ordersApi'
+import type { Order } from '@/api/ordersApi'
 import styles from './DashboardPage.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OrderStatus = 'Delivered' | 'Ready' | 'Preparing' | 'Pending'
-
-interface Order {
-  id: string
-  customer: string
-  meal: string
-  amount: number
-  status: OrderStatus
-}
-
-// ─── Mock data — replace with API calls (Module 3: Orders) ───────────────────
-
-const RECENT_ORDERS: Order[] = [
-  { id: 'ORD-008', customer: 'Priya Desai',   meal: 'Standard Veg', amount: 290, status: 'Delivered' },
-  { id: 'ORD-007', customer: 'Amit Kulkarni', meal: 'Mini Veg',     amount: 130, status: 'Ready'     },
-  { id: 'ORD-006', customer: 'Sneha Joshi',   meal: 'Custom',       amount: 175, status: 'Preparing' },
-  { id: 'ORD-005', customer: 'Rajesh Patil',  meal: 'Standard Veg', amount: 435, status: 'Pending'   },
-]
-
-// ─── Mock stats — replace with GET /api/dashboard/summary (Module 2) ─────────
-
-const STATS = [
-  { label: 'Orders Today',    value: '28',       sub: '+4 from yesterday',     icon: '🗓️' },
-  { label: 'Revenue Today',   value: '₹3,840',   sub: 'Across 28 orders',      icon: '📈' },
-  { label: 'Active Meal Plan',value: 'June Plan', sub: '21 days remaining',    icon: '📅' },
-  { label: 'Avg. Rating',     value: '4.7',       sub: 'Based on 124 reviews', icon: '⭐' },
-]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +36,7 @@ function statusClass(status: OrderStatus): string {
     Preparing: styles.preparing,
     Pending:   styles.pending,
   }
-  return map[status]
+  return map[status] ?? ''
 }
 
 function formatHours(hours: KitchenDetails['operatingHours'] | undefined): string {
@@ -66,21 +44,72 @@ function formatHours(hours: KitchenDetails['operatingHours'] | undefined): strin
   return `${hours.open} – ${hours.close}`
 }
 
+function formatDelta(delta: number): string {
+  if (delta > 0) return `+${delta} from yesterday`
+  if (delta < 0) return `${delta} from yesterday`
+  return 'Same as yesterday'
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [vendor, setVendor]   = useState<VendorMe | null>(null)
-  const [kitchen, setKitchen] = useState<KitchenDetails | null>(null)
+  const [vendor,   setVendor]   = useState<VendorMe | null>(null)
+  const [kitchen,  setKitchen]  = useState<KitchenDetails | null>(null)
+  const [summary,  setSummary]  = useState<DashboardSummary | null>(null)
+  const [orders,   setOrders]   = useState<Order[]>([])
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
-    fetchVendorMe().then(setVendor).catch(console.error)
-    fetchKitchenDetails().then(setKitchen).catch(console.error)
+    Promise.all([
+      fetchVendorMe().then(setVendor),
+      fetchKitchenDetails().then(setKitchen),
+      fetchDashboardSummary().then(setSummary),
+      fetchRecentOrders(5).then(setOrders),
+    ])
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [])
 
-  const displayName    = vendor?.name          ?? '…'
-  const avatarInitial  = vendor?.avatarInitial ?? '…'
-  const kitchenName    = kitchen?.kitchenName  ?? '…'
-  const kitchenCity    = kitchen?.city         ?? '…'
+  const displayName   = vendor?.name          ?? '…'
+  const avatarInitial = vendor?.avatarInitial ?? '…'
+  const kitchenName   = kitchen?.kitchenName  ?? '…'
+  const kitchenCity   = kitchen?.city         ?? '…'
+
+  // Build stat cards from live data once loaded
+  const stats = summary
+    ? [
+        {
+          label: 'Orders Today',
+          value: String(summary.ordersToday.count),
+          sub:   formatDelta(summary.ordersToday.deltaFromYesterday),
+          icon:  '🗓️',
+        },
+        {
+          label: 'Revenue Today',
+          value: rupeesFromPaise(summary.revenueToday.amountInPaise),
+          sub:   `Across ${summary.revenueToday.orderCount} orders`,
+          icon:  '📈',
+        },
+        {
+          label: 'Active Meal Plan',
+          value: summary.activeMealPlan?.name ?? 'None',
+          sub:   summary.activeMealPlan
+            ? `${summary.activeMealPlan.daysRemaining} days remaining`
+            : 'No active plan',
+          icon:  '📅',
+        },
+        {
+          label: 'Avg. Rating',
+          value: summary.avgRating.reviewCount > 0
+            ? String(summary.avgRating.value)
+            : '—',
+          sub: summary.avgRating.reviewCount > 0
+            ? `Based on ${summary.avgRating.reviewCount} reviews`
+            : 'No reviews yet',
+          icon: '⭐',
+        },
+      ]
+    : null
 
   return (
     <div className={styles.page}>
@@ -108,7 +137,12 @@ export default function DashboardPage() {
 
         {/* Stat Cards */}
         <div className={styles.statsGrid}>
-          {STATS.map((s) => (
+          {(stats ?? [
+            { label: 'Orders Today',     value: loading ? '…' : '0',    sub: '—', icon: '🗓️' },
+            { label: 'Revenue Today',    value: loading ? '…' : '₹0',   sub: '—', icon: '📈' },
+            { label: 'Active Meal Plan', value: loading ? '…' : 'None', sub: '—', icon: '📅' },
+            { label: 'Avg. Rating',      value: loading ? '…' : '—',    sub: '—', icon: '⭐' },
+          ]).map((s) => (
             <div key={s.label} className={styles.statCard}>
               <div className={styles.statHeader}>
                 <span className={styles.statLabel}>{s.label}</span>
@@ -129,15 +163,21 @@ export default function DashboardPage() {
               <Link to="/orders" className={styles.viewAll}>View all →</Link>
             </div>
 
-            {RECENT_ORDERS.map((order) => (
-              <div key={order.id} className={styles.orderRow}>
+            {loading && (
+              <p className={styles.placeholder}>Loading orders…</p>
+            )}
+            {!loading && orders.length === 0 && (
+              <p className={styles.placeholder}>No orders yet today.</p>
+            )}
+            {orders.map((order) => (
+              <div key={order.orderId} className={styles.orderRow}>
                 <div className={styles.orderLeft}>
-                  <p className={styles.orderId}>{order.id}</p>
-                  <p className={styles.orderCustomer}>{order.customer}</p>
+                  <p className={styles.orderId}>{order.orderId}</p>
+                  <p className={styles.orderCustomer}>{order.customerName}</p>
                 </div>
-                <span className={styles.orderMeal}>{order.meal}</span>
-                <span className={styles.orderAmount}>₹{order.amount}</span>
-                <span className={[styles.badge, statusClass(order.status)].join(' ')}>
+                <span className={styles.orderMeal}>{order.mealType}</span>
+                <span className={styles.orderAmount}>{rupeesFromPaise(order.amountInPaise)}</span>
+                <span className={[styles.badge, statusClass(order.status as OrderStatus)].join(' ')}>
                   {order.status}
                 </span>
               </div>
