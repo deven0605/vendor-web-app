@@ -1,44 +1,31 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import {
+  fetchMealPlan,
+  fetchDayMenus,
+  fetchMenuOptions,
+  saveSlotMenu,
+} from '@/api/mealPlansApi'
+import type { MealPlan, DayMenuEntry, MenuDetails, MenuOptions } from '@/api/mealPlansApi'
 import styles from './ManageDaysPage.module.css'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const VEGETABLE_OPTIONS = [
-  'Paneer Butter Masala', 'Aloo Gobi', 'Palak Paneer', 'Bhindi Masala',
-  'Chana Masala', 'Mixed Veg', 'Matar Paneer', 'Baingan Bharta',
-  'Jeera Aloo', 'Rajma', 'Kadai Paneer', 'Mushroom Masala',
-]
-
-const DAL_OPTIONS = ['Dal Tadka', 'Dal Makhani', 'Dal Fry', 'Chana Dal', 'Moong Dal']
-
-const RICE_OPTIONS = ['Onion Rice', 'Jeera Rice', 'Plain Rice', 'Veg Pulao']
-
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-
-const MAX_VEG = 5
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface MealMenu {
-  vegetables: string[]
-  chapatiCount: number
-  riceType: string
-  riceCount: number
-  dal: string
-}
-
-interface DaySlots {
-  lunch: MealMenu
-  dinner: MealMenu
-}
-
 interface DayEntry {
-  date: Date
-  slots: DaySlots
+  date: string          // YYYY-MM-DD
+  lunch: MenuDetails
+  dinner: MenuDetails
   isExpanded: boolean
   lunchOpen: boolean
   dinnerOpen: boolean
+  lunchSaving: boolean
+  dinnerSaving: boolean
+  lunchSaved: boolean
+  dinnerSaved: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -49,41 +36,33 @@ function getTodayLabel(): string {
   })
 }
 
-function defaultMenu(): MealMenu {
-  return {
-    vegetables: ['Paneer Butter Masala', 'Aloo Gobi'],
-    chapatiCount: 4,
-    riceType: 'Onion Rice',
-    riceCount: 1,
-    dal: 'Dal Tadka',
-  }
-}
-
-function generateDays(start: Date, end: Date): DayEntry[] {
-  const days: DayEntry[] = []
-  const cur = new Date(start)
-  while (cur <= end) {
-    days.push({
-      date: new Date(cur),
-      slots: { lunch: defaultMenu(), dinner: defaultMenu() },
-      isExpanded: false,
-      lunchOpen: true,
-      dinnerOpen: false,
-    })
-    cur.setDate(cur.getDate() + 1)
-  }
-  return days
-}
-
-function formatDateRange(start: Date, end: Date): string {
-  const fmt = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+function formatDateRange(start: string, end: string): string {
+  const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
   return `${fmt(start)} – ${fmt(end)}`
 }
 
-function formatSlotTitle(date: Date, slot: 'Lunch' | 'Dinner'): string {
+function formatSlotTitle(dateStr: string, slot: 'Lunch' | 'Dinner'): string {
+  const date = new Date(dateStr)
   const day = DAY_NAMES[date.getDay()]
   const d = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
   return `${day}, ${d} – ${slot}`
+}
+
+function toDayEntry(entry: DayMenuEntry): DayEntry {
+  return {
+    date: entry.date,
+    lunch: entry.lunch,
+    dinner: entry.dinner,
+    isExpanded: false,
+    lunchOpen: true,
+    dinnerOpen: false,
+    lunchSaving: false,
+    dinnerSaving: false,
+    lunchSaved: false,
+    dinnerSaved: false,
+  }
 }
 
 // ─── Quantity Control ─────────────────────────────────────────────────────────
@@ -108,25 +87,28 @@ function QtyControl({ value, min = 1, max = 10, onChange }: QtyControlProps) {
 // ─── Meal Slot Form ───────────────────────────────────────────────────────────
 
 interface SlotFormProps {
-  menu: MealMenu
-  onChange: (m: MealMenu) => void
+  menu: MenuDetails
+  options: MenuOptions
+  saving: boolean
+  saved: boolean
+  onChange: (m: MenuDetails) => void
   onReset: () => void
   onSave: () => void
 }
 
-function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
-  const set = <K extends keyof MealMenu>(k: K, v: MealMenu[K]) =>
+function SlotForm({ menu, options, saving, saved, onChange, onReset, onSave }: SlotFormProps) {
+  const set = <K extends keyof MenuDetails>(k: K, v: MenuDetails[K]) =>
     onChange({ ...menu, [k]: v })
 
   const addVeg = (veg: string) => {
-    if (!veg || menu.vegetables.includes(veg) || menu.vegetables.length >= MAX_VEG) return
+    if (!veg || menu.vegetables.includes(veg) || menu.vegetables.length >= options.constraints.maxVegetables) return
     set('vegetables', [...menu.vegetables, veg])
   }
 
   const removeVeg = (veg: string) =>
     set('vegetables', menu.vegetables.filter((v) => v !== veg))
 
-  const availableVegs = VEGETABLE_OPTIONS.filter((v) => !menu.vegetables.includes(v))
+  const availableVegs = options.vegetables.filter((v) => !menu.vegetables.includes(v))
 
   return (
     <div className={styles.menuForm}>
@@ -136,7 +118,7 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
       <div className={styles.formField}>
         <div className={styles.fieldLabel}>
           Vegetables
-          <span className={styles.fieldLabelHint}>Select up to {MAX_VEG}</span>
+          <span className={styles.fieldLabelHint}>Select up to {options.constraints.maxVegetables}</span>
         </div>
         <div className={styles.vegTagsWrapper}>
           {menu.vegetables.map((v) => (
@@ -146,7 +128,7 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
             </span>
           ))}
         </div>
-        {menu.vegetables.length < MAX_VEG && (
+        {menu.vegetables.length < options.constraints.maxVegetables && (
           <select
             className={styles.selectInput}
             value=""
@@ -166,17 +148,19 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
           <div className={styles.fieldLabel}>Chapati / Roti</div>
           <QtyControl
             value={menu.chapatiCount}
-            min={1} max={8}
+            min={options.constraints.chapatiMin}
+            max={options.constraints.chapatiMax}
             onChange={(v) => set('chapatiCount', v)}
           />
         </div>
 
-        {/* Rice */}
+        {/* Rice count */}
         <div className={styles.formField}>
           <div className={styles.fieldLabel}>{menu.riceType}</div>
           <QtyControl
             value={menu.riceCount}
-            min={0} max={4}
+            min={options.constraints.riceMin}
+            max={options.constraints.riceMax}
             onChange={(v) => set('riceCount', v)}
           />
         </div>
@@ -191,7 +175,7 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
             value={menu.riceType}
             onChange={(e) => set('riceType', e.target.value)}
           >
-            {RICE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            {options.riceOptions.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
 
@@ -203,14 +187,16 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
             value={menu.dal}
             onChange={(e) => set('dal', e.target.value)}
           >
-            {DAL_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            {options.dalOptions.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
       </div>
 
       <div className={styles.formActions}>
-        <button className={styles.btnReset} onClick={onReset}>Reset</button>
-        <button className={styles.btnSave} onClick={onSave}>Save Menu</button>
+        <button className={styles.btnReset} onClick={onReset} disabled={saving}>Reset</button>
+        <button className={styles.btnSave} onClick={onSave} disabled={saving}>
+          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Menu'}
+        </button>
       </div>
     </div>
   )
@@ -220,33 +206,33 @@ function SlotForm({ menu, onChange, onReset, onSave }: SlotFormProps) {
 
 interface DayRowProps {
   entry: DayEntry
+  options: MenuOptions
   onToggleExpand: () => void
   onToggleLunch: () => void
   onToggleDinner: () => void
-  onLunchChange: (m: MealMenu) => void
-  onDinnerChange: (m: MealMenu) => void
+  onLunchChange: (m: MenuDetails) => void
+  onDinnerChange: (m: MenuDetails) => void
   onLunchReset: () => void
   onDinnerReset: () => void
   onSave: (slot: 'lunch' | 'dinner') => void
 }
 
 function DayRow({
-  entry, onToggleExpand,
-  onToggleLunch, onToggleDinner,
+  entry, options,
+  onToggleExpand, onToggleLunch, onToggleDinner,
   onLunchChange, onDinnerChange,
   onLunchReset, onDinnerReset,
   onSave,
 }: DayRowProps) {
-  const { date, slots, isExpanded, lunchOpen, dinnerOpen } = entry
+  const date = new Date(entry.date)
   const dayName = DAY_NAMES[date.getDay()]
   const dayNum = date.getDate()
   const monthStr = date.toLocaleDateString('en-IN', { month: 'short' })
 
   return (
     <div className={styles.dayRow}>
-      {/* Collapsed header */}
       <div
-        className={[styles.dayRowHeader, isExpanded ? styles.expanded : ''].join(' ')}
+        className={[styles.dayRowHeader, entry.isExpanded ? styles.expanded : ''].join(' ')}
         onClick={onToggleExpand}
       >
         <div className={styles.dateBadge}>
@@ -258,32 +244,34 @@ function DayRow({
         <div className={styles.thalliCounts}>
           <span className={styles.slotCount}>
             <span className={styles.slotIcon}>☀️</span>
-            {slots.lunch.vegetables.length + slots.lunch.chapatiCount} thalis
+            {entry.lunch.vegetables.length + entry.lunch.chapatiCount} thalis
           </span>
           <span className={styles.slotCount}>
             <span className={styles.slotIcon}>🌙</span>
-            {slots.dinner.vegetables.length + slots.dinner.chapatiCount} thalis
+            {entry.dinner.vegetables.length + entry.dinner.chapatiCount} thalis
           </span>
         </div>
 
-        <span className={[styles.arrow, isExpanded ? styles.open : ''].join(' ')}>▼</span>
+        <span className={[styles.arrow, entry.isExpanded ? styles.open : ''].join(' ')}>▼</span>
       </div>
 
-      {/* Expanded meal slots */}
-      {isExpanded && (
+      {entry.isExpanded && (
         <div className={styles.expandedContent}>
           {/* Lunch */}
           <div className={styles.slotAccordion}>
             <div className={styles.slotHeader} onClick={onToggleLunch}>
               <span className={styles.slotTitle}>
                 <span className={styles.slotTitleIcon}>☀️</span>
-                {formatSlotTitle(date, 'Lunch')}
+                {formatSlotTitle(entry.date, 'Lunch')}
               </span>
-              <span className={[styles.slotArrow, lunchOpen ? styles.open : ''].join(' ')}>▼</span>
+              <span className={[styles.slotArrow, entry.lunchOpen ? styles.open : ''].join(' ')}>▼</span>
             </div>
-            {lunchOpen && (
+            {entry.lunchOpen && (
               <SlotForm
-                menu={slots.lunch}
+                menu={entry.lunch}
+                options={options}
+                saving={entry.lunchSaving}
+                saved={entry.lunchSaved}
                 onChange={onLunchChange}
                 onReset={onLunchReset}
                 onSave={() => onSave('lunch')}
@@ -296,13 +284,16 @@ function DayRow({
             <div className={styles.slotHeader} onClick={onToggleDinner}>
               <span className={styles.slotTitle}>
                 <span className={styles.slotTitleIcon}>🌙</span>
-                {formatSlotTitle(date, 'Dinner')}
+                {formatSlotTitle(entry.date, 'Dinner')}
               </span>
-              <span className={[styles.slotArrow, dinnerOpen ? styles.open : ''].join(' ')}>▼</span>
+              <span className={[styles.slotArrow, entry.dinnerOpen ? styles.open : ''].join(' ')}>▼</span>
             </div>
-            {dinnerOpen && (
+            {entry.dinnerOpen && (
               <SlotForm
-                menu={slots.dinner}
+                menu={entry.dinner}
+                options={options}
+                saving={entry.dinnerSaving}
+                saved={entry.dinnerSaved}
                 onChange={onDinnerChange}
                 onReset={onDinnerReset}
                 onSave={() => onSave('dinner')}
@@ -321,26 +312,94 @@ function DayRow({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const PLAN_START = new Date(2026, 5, 1)   // 1 Jun 2026
-const PLAN_END   = new Date(2026, 5, 30)  // 30 Jun 2026
-
 export default function ManageDaysPage() {
   const navigate = useNavigate()
-  const [days, setDays] = useState<DayEntry[]>(() => generateDays(PLAN_START, PLAN_END))
+  const { planId } = useParams<{ planId: string }>()
 
-  const updateDay = (i: number, patch: Partial<DayEntry>) =>
-    setDays((prev) => prev.map((d, idx) => idx === i ? { ...d, ...patch } : d))
+  const [plan, setPlan] = useState<MealPlan | null>(null)
+  const [days, setDays] = useState<DayEntry[]>([])
+  const [options, setOptions] = useState<MenuOptions | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const updateSlot = (i: number, slot: 'lunch' | 'dinner', menu: MealMenu) =>
+  useEffect(() => {
+    if (!planId) return
+    async function load() {
+      try {
+        const [planData, dayMenus, menuOpts] = await Promise.all([
+          fetchMealPlan(planId!),
+          fetchDayMenus(planId!),
+          fetchMenuOptions(),
+        ])
+        setPlan(planData)
+        setOptions(menuOpts)
+        setDays(dayMenus.map(toDayEntry))
+      } catch {
+        setError('Failed to load plan data. Please go back and try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [planId])
+
+  const updateDay = useCallback((i: number, patch: Partial<DayEntry>) =>
+    setDays((prev) => prev.map((d, idx) => idx === i ? { ...d, ...patch } : d)),
+  [])
+
+  const updateSlot = useCallback((i: number, slot: 'lunch' | 'dinner', menu: MenuDetails) =>
     setDays((prev) =>
       prev.map((d, idx) =>
-        idx === i ? { ...d, slots: { ...d.slots, [slot]: menu } } : d,
+        idx === i ? { ...d, [slot]: menu, [`${slot}Saved`]: false } : d,
       ),
-    )
+    ),
+  [])
 
-  const handleSave = (i: number, slot: 'lunch' | 'dinner') => {
-    // TODO: call API to save menu for this day/slot
-    alert(`Menu saved for ${DAY_NAMES[days[i].date.getDay()]} ${slot}!`)
+  const handleSave = useCallback(async (i: number, slot: 'lunch' | 'dinner') => {
+    if (!planId) return
+    const entry = days[i]
+    const menu = slot === 'lunch' ? entry.lunch : entry.dinner
+    const savingKey = slot === 'lunch' ? 'lunchSaving' : 'dinnerSaving'
+    const savedKey  = slot === 'lunch' ? 'lunchSaved'  : 'dinnerSaved'
+
+    updateDay(i, { [savingKey]: true, [savedKey]: false })
+    try {
+      await saveSlotMenu(planId, entry.date, slot, menu)
+      updateDay(i, { [savingKey]: false, [savedKey]: true })
+      setTimeout(() => updateDay(i, { [savedKey]: false }), 2000)
+    } catch (e) {
+      updateDay(i, { [savingKey]: false })
+      alert(e instanceof Error ? e.message : 'Failed to save menu')
+    }
+  }, [planId, days, updateDay])
+
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Loading…</div>
+      </div>
+    )
+  }
+
+  if (error || !plan || !options) {
+    return (
+      <div className={styles.page}>
+        <div style={{ padding: 32, textAlign: 'center', color: '#ef4444' }}>
+          {error ?? 'Plan not found.'}
+        </div>
+        <button onClick={() => navigate('/meal-plans')} style={{ margin: '0 auto', display: 'block' }}>
+          ← Back to Meal Plans
+        </button>
+      </div>
+    )
+  }
+
+  const defaultMenu: MenuDetails = {
+    vegetables: options.vegetables.slice(0, 2),
+    chapatiCount: options.constraints.chapatiMin,
+    riceType: options.riceOptions[0],
+    riceCount: 1,
+    dal: options.dalOptions[0],
   }
 
   return (
@@ -351,31 +410,26 @@ export default function ManageDaysPage() {
           <h2>Meal Plans</h2>
           <p>{getTodayLabel()}</p>
         </div>
-        <div className={styles.topBarRight}>
-          <div className={styles.avatar}>N</div>
-          <span className={styles.avatarName}>Neelam</span>
-        </div>
       </div>
 
       {/* Body */}
       <div className={styles.body}>
-        {/* Plan header */}
         <div className={styles.planHeader}>
           <button className={styles.backBtn} onClick={() => navigate('/meal-plans')}>
             ← Back
           </button>
           <div className={styles.planTitleBlock}>
-            <h1 className={styles.planTitle}>June Monthly Plan</h1>
-            <p className={styles.planDates}>{formatDateRange(PLAN_START, PLAN_END)}</p>
+            <h1 className={styles.planTitle}>{plan.name}</h1>
+            <p className={styles.planDates}>{formatDateRange(plan.startDate, plan.endDate)}</p>
           </div>
         </div>
 
-        {/* Days */}
         <div className={styles.daysList}>
           {days.map((entry, i) => (
             <DayRow
-              key={entry.date.toISOString()}
+              key={entry.date}
               entry={entry}
+              options={options}
               onToggleExpand={() =>
                 updateDay(i, { isExpanded: !entry.isExpanded, lunchOpen: true, dinnerOpen: false })
               }
@@ -383,8 +437,8 @@ export default function ManageDaysPage() {
               onToggleDinner={() => updateDay(i, { dinnerOpen: !entry.dinnerOpen })}
               onLunchChange={(m) => updateSlot(i, 'lunch', m)}
               onDinnerChange={(m) => updateSlot(i, 'dinner', m)}
-              onLunchReset={() => updateSlot(i, 'lunch', defaultMenu())}
-              onDinnerReset={() => updateSlot(i, 'dinner', defaultMenu())}
+              onLunchReset={() => updateSlot(i, 'lunch', { ...defaultMenu })}
+              onDinnerReset={() => updateSlot(i, 'dinner', { ...defaultMenu })}
               onSave={(slot) => handleSave(i, slot)}
             />
           ))}
