@@ -801,7 +801,7 @@ Services must start in this order (shared H2 file database):
 | **Feature** | Meal Type Catalog |
 | **Purpose** | Provides the available meal type catalog used in two places: the informational type cards on `MealPlansPage` (name, price, description, icon) and the checkbox list on `CreateMealPlanPage` for selecting which meal types are enabled per plan. |
 | **Method** | `GET` |
-| **Endpoint** | `/api/meal-types` |
+| **Endpoint** | `/api/mealTypes` |
 | **Auth** | Required |
 
 **Request Parameters:** None  
@@ -971,7 +971,7 @@ DashboardPage (/dashboard)
         │
         └── MealPlansPage
               │
-              ├── meal type cards    ◄── GET /api/meal-types
+              ├── meal type cards    ◄── GET /api/mealTypes
               ├── plans list         ◄── GET /api/meal-plans
               ├── activate plan          PATCH /api/meal-plans/:id/status
               ├── deactivate plan        PATCH /api/meal-plans/:id/status
@@ -999,7 +999,7 @@ DashboardPage (/dashboard)
 |---|---|
 | `GET /api/vendor/me` | Dashboard top bar, all page top bars, Sidebar user section |
 | `GET /api/vendor/kitchen` | Dashboard "Kitchen Details" card, Sidebar kitchen card |
-| `GET /api/meal-types` | `MealPlansPage` (display cards), `CreateMealPlanPage` (checkboxes) |
+| `GET /api/mealTypes` | `MealPlansPage` (display cards), `CreateMealPlanPage` (checkboxes) |
 | `GET /api/menu-options` | `ManageDaysPage` all slot forms — vegetables, dal, rice dropdowns + constraints |
 | `GET /api/dashboard/summary` → `activeMealPlan` | Stat card; also useful for Sidebar if it ever shows the active plan name |
 
@@ -1022,7 +1022,7 @@ DashboardPage (/dashboard)
 | 4.5 | `DELETE` | `/api/meal-plans/:planId` | Meal Plans | Delete plan |
 | 5.1 | `GET` | `/api/meal-plans/:planId/days` | Day Menus | Get all day menus |
 | 5.2 | `PUT` | `/api/meal-plans/:planId/days/:date/slots/:slot` | Day Menus | Save slot menu |
-| 6.1 | `GET` | `/api/meal-types` | Meal Types | Meal type catalog |
+| 6.1 | `GET` | `/api/mealTypes` | Meal Types | Meal type catalog |
 | 7.1 | `GET` | `/api/menu-options` | Menu Config | Slot form dropdown options |
 
 **Total: 15 endpoints across 7 modules**

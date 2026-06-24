@@ -17,6 +17,7 @@ function todayISO(): string {
 function statusClass(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
     Delivered: styles.delivered,
+    Dispatched: styles.dispatched,
     Ready:     styles.ready,
     Preparing: styles.preparing,
     Pending:   styles.pending,
@@ -29,6 +30,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'Pending',   label: 'Pending'       },
   { value: 'Preparing', label: 'Preparing'     },
   { value: 'Ready',     label: 'Ready'         },
+  { value: 'Dispatched', label: 'Dispatched'  },
   { value: 'Delivered', label: 'Delivered'     },
 ]
 

@@ -10,7 +10,7 @@ import styles from './DashboardPage.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type OrderStatus = 'Delivered' | 'Ready' | 'Preparing' | 'Pending'
+type OrderStatus = 'Delivered' | 'Dispatched' | 'Ready' | 'Preparing' | 'Pending'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,7 @@ function getTodayLabel(): string {
 function statusClass(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
     Delivered: styles.delivered,
+    Dispatched: styles.dispatched,
     Ready:     styles.ready,
     Preparing: styles.preparing,
     Pending:   styles.pending,

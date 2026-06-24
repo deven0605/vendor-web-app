@@ -2,7 +2,7 @@ import { authFetch } from '@/utils/authFetch'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type OrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Delivered'
+export type OrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Dispatched' | 'Delivered'
 
 export interface Order {
   orderId: string
@@ -76,8 +76,9 @@ export function rupeesFromPaise(paise: number): string {
 }
 
 export const STATUS_NEXT: Record<OrderStatus, OrderStatus | null> = {
-  Pending:   'Preparing',
-  Preparing: 'Ready',
-  Ready:     'Delivered',
-  Delivered: null,
+  Pending:    'Preparing',
+  Preparing:  'Ready',
+  Ready:      'Dispatched',
+  Dispatched: 'Delivered',
+  Delivered:  null,
 }

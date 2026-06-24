@@ -65,7 +65,7 @@ export interface PlanStatusResponse {
 // ─── API calls ───────────────────────────────────────────────────────────────
 
 export async function fetchMealTypes(): Promise<MealType[]> {
-  const res = await authFetch('/api/meal-types')
+  const res = await authFetch('/api/mealTypes')
   if (!res.ok) throw new Error('Failed to fetch meal types')
   const json = await res.json() as { data: MealType[] }
   return json.data
