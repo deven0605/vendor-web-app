@@ -10,7 +10,7 @@ import styles from './DashboardPage.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type OrderStatus = 'Delivered' | 'Dispatched' | 'Ready' | 'Preparing' | 'Pending'
+type OrderStatus = 'Delivered' | 'Dispatched' | 'Ready' | 'Preparing' | 'Pending' | 'Kitchen Accepted' | 'Rejected'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,8 @@ function statusClass(status: OrderStatus): string {
     Ready:     styles.ready,
     Preparing: styles.preparing,
     Pending:   styles.pending,
+    'Kitchen Accepted': styles.kitchenAccepted,
+    Rejected:  styles.rejected,
   }
   return map[status] ?? ''
 }

@@ -2,11 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   fetchOrders,
   updateOrderStatus,
+  acceptOrder,
+  rejectOrder,
   rupeesFromPaise,
   STATUS_NEXT,
 } from '@/api/ordersApi'
 import type { Order, OrderStatus, OrdersParams } from '@/api/ordersApi'
 import styles from './OrdersPage.module.css'
+
+// Ready->Dispatched and Dispatched->Delivered now happen automatically from
+// the delivery partner's pickup/delivery OTP flow (see delivery-service), so
+// the vendor's view needs to refresh on its own to pick those up.
+const POLL_INTERVAL_MS = 15000
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +28,8 @@ function statusClass(status: OrderStatus): string {
     Ready:     styles.ready,
     Preparing: styles.preparing,
     Pending:   styles.pending,
+    'Kitchen Accepted': styles.kitchenAccepted,
+    Rejected:  styles.rejected,
   }
   return map[status] ?? ''
 }
@@ -28,10 +37,12 @@ function statusClass(status: OrderStatus): string {
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'all',       label: 'All Statuses' },
   { value: 'Pending',   label: 'Pending'       },
+  { value: 'Kitchen Accepted', label: 'Kitchen Accepted' },
   { value: 'Preparing', label: 'Preparing'     },
   { value: 'Ready',     label: 'Ready'         },
   { value: 'Dispatched', label: 'Dispatched'  },
   { value: 'Delivered', label: 'Delivered'     },
+  { value: 'Rejected',  label: 'Rejected'      },
 ]
 
 const PAGE_SIZE = 20
@@ -82,6 +93,14 @@ export default function OrdersPage() {
     load()
   }, [load])
 
+  // Light polling so vendor-driven statuses that now change automatically
+  // (Ready -> Dispatched -> Delivered, via the delivery partner's OTP flow)
+  // show up without a manual page refresh.
+  useEffect(() => {
+    const id = setInterval(load, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [load])
+
   // Reset to page 1 when filters change
   const applyFilter = (fn: () => void) => {
     fn()
@@ -112,6 +131,32 @@ export default function OrdersPage() {
       await load()
     } catch {
       alert('Failed to update order status.')
+    } finally {
+      setAdvancingId(null)
+    }
+  }
+
+  const handleAccept = async (order: Order) => {
+    setAdvancingId(order.orderId)
+    try {
+      await acceptOrder(order.orderId)
+      await load()
+    } catch {
+      alert('Failed to accept order.')
+    } finally {
+      setAdvancingId(null)
+    }
+  }
+
+  const handleReject = async (order: Order) => {
+    const reason = window.prompt('Reason for rejecting this order:')
+    if (reason == null || reason.trim() === '') return
+    setAdvancingId(order.orderId)
+    try {
+      await rejectOrder(order.orderId, reason.trim())
+      await load()
+    } catch {
+      alert('Failed to reject order.')
     } finally {
       setAdvancingId(null)
     }
@@ -195,6 +240,7 @@ export default function OrdersPage() {
             )}
             {!loading && orders.map((order) => {
               const next = STATUS_NEXT[order.status]
+              const isBusy = advancingId === order.orderId
               return (
                 <tr key={order.orderId}>
                   <td className={styles.orderId}>{order.orderId}</td>
@@ -205,15 +251,35 @@ export default function OrdersPage() {
                     <span className={[styles.badge, statusClass(order.status)].join(' ')}>
                       {order.status}
                     </span>
+                    {order.status === 'Rejected' && order.rejectionReason && (
+                      <div className={styles.rejectionReason}>{order.rejectionReason}</div>
+                    )}
                   </td>
                   <td>
-                    {next ? (
+                    {order.status === 'Pending' ? (
+                      <div className={styles.actionGroup}>
+                        <button
+                          className={styles.acceptBtn}
+                          onClick={() => handleAccept(order)}
+                          disabled={isBusy}
+                        >
+                          {isBusy ? '…' : 'Accept'}
+                        </button>
+                        <button
+                          className={styles.rejectBtn}
+                          onClick={() => handleReject(order)}
+                          disabled={isBusy}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : next ? (
                       <button
                         className={styles.advanceBtn}
                         onClick={() => handleAdvance(order)}
-                        disabled={advancingId === order.orderId}
+                        disabled={isBusy}
                       >
-                        {advancingId === order.orderId ? '…' : `Mark ${next}`}
+                        {isBusy ? '…' : `Mark ${next}`}
                       </button>
                     ) : (
                       <span className={styles.noAction}>—</span>

@@ -170,7 +170,75 @@
   color: #c2410c;
 }
 
+.kitchenAccepted {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.rejectionReason {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #991b1b;
+  max-width: 220px;
+}
+
 /* ── ACTION BUTTON ── */
+.actionGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.acceptBtn {
+  padding: 6px 14px;
+  border: 1px solid #16a34a;
+  border-radius: 8px;
+  background: transparent;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.acceptBtn:hover:not(:disabled) {
+  background: #16a34a;
+  color: #fff;
+}
+
+.acceptBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rejectBtn {
+  padding: 6px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  background: transparent;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.rejectBtn:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+}
+
+.rejectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .advanceBtn {
   padding: 6px 14px;
   border: 1px solid #e07b30;

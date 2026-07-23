@@ -2,7 +2,14 @@ import { authFetch } from '@/utils/authFetch'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type OrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Dispatched' | 'Delivered'
+export type OrderStatus =
+  | 'Pending'
+  | 'Kitchen Accepted'
+  | 'Preparing'
+  | 'Ready'
+  | 'Dispatched'
+  | 'Delivered'
+  | 'Rejected'
 
 export interface Order {
   orderId: string
@@ -11,6 +18,7 @@ export interface Order {
   amountInPaise: number
   status: OrderStatus
   createdAt: string
+  rejectionReason?: string | null
 }
 
 export interface PaginationInfo {
@@ -69,16 +77,38 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
   if (!res.ok) throw new Error('Failed to update order status')
 }
 
+// Advances a Pending order to Kitchen Accepted; the backend notifies
+// delivery-service to dispatch an available partner as a side effect.
+export async function acceptOrder(orderId: string): Promise<void> {
+  const res = await authFetch(`/api/orders/${orderId}/accept`, { method: 'POST' })
+  if (!res.ok) throw new Error('Failed to accept order')
+}
+
+export async function rejectOrder(orderId: string, reason: string): Promise<void> {
+  const res = await authFetch(`/api/orders/${orderId}/reject`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  if (!res.ok) throw new Error('Failed to reject order')
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 export function rupeesFromPaise(paise: number): string {
   return '₹' + (paise / 100).toLocaleString('en-IN')
 }
 
+// Pending is handled by Accept/Reject (see acceptOrder/rejectOrder), not a
+// generic "Mark next" advance. Ready -> Dispatched and Dispatched -> Delivered
+// now happen automatically from the delivery partner's pickup/delivery OTP
+// flow (see delivery-service), so they're no longer vendor-advanceable here either.
 export const STATUS_NEXT: Record<OrderStatus, OrderStatus | null> = {
-  Pending:    'Preparing',
-  Preparing:  'Ready',
-  Ready:      'Dispatched',
-  Dispatched: 'Delivered',
-  Delivered:  null,
+  Pending:          null,
+  'Kitchen Accepted': 'Preparing',
+  Preparing:        'Ready',
+  Ready:            null,
+  Dispatched:       null,
+  Delivered:        null,
+  Rejected:         null,
 }
